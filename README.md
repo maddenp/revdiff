@@ -1,7 +1,7 @@
 revdiff
 =======
 
-View diffs of a Subversion object's revision pairs, back through time, with optional filtering.
+View (reverse) evolution of a Subversion object, with optional filtering.
 
 Performs an "svn diff" on each pair of revisions between which the item supplied as the first argument changed. The most recent change is shown first. The item may name an svn URI or the name of a versioned filesystem object (an item in a working copy).
 
