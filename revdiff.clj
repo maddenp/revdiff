@@ -29,13 +29,13 @@
 ; TODO add a debug toggle and some related verbose prints?
 ; TODO is --stop-on-copy on log really a good idea?
 ; TODO maybe print log message / committer info (could use awt/swing popup)?
-; TOTO pass all '--' options (e.g. --username) to svn?
+; TODO pass all '--' options (e.g. --username) to svn?
 
 (ns revdiff
-  (:import [java.io StringBufferInputStream])
-  (:use [clojure.java.shell :only (sh)])
-  (:use [clojure.string :only (split split-lines trim)])
-  (:use [clojure.xml :only (parse)]))
+  (:import [java.io.StringBufferInputStream])
+  (:use [clojure.xml :only [parse]])
+  (:use [clojure.java.shell :only [sh]])
+  (:use [clojure.string :only [split split-lines trim]]))
 
 (def args *command-line-args*)  ; for brevity's sake
 (def item (second args))        ; the query subject
@@ -46,7 +46,7 @@
 ; A string containing the xml-formatted svn log for the requested item. Stop on
 ; copy to avoid following the history of a differently-named object.
 
-(defn log [] (sh "svn" "log" shhh "--stop-on-copy" "--xml" item))
+(defn log [] (:out (sh "svn" "log" shhh "--stop-on-copy" "--xml" item)))
 
 ; Try to explain why this has failed.
 
@@ -59,12 +59,10 @@
 ; A newest-first sequence of revision numbers in which the item changed
 
 (defn revlist []
-  (for [e
-        (try
-          (xml-seq (parse (java.io.StringBufferInputStream. (:out (log)))))
-          (catch Exception x (errmsg)))
-        :when (seq (:attrs e))
-        ]
+  (for [e (try
+            (xml-seq (parse (java.io.StringBufferInputStream. (log))))
+            (catch Exception e (errmsg)))
+        :when (seq (:attrs e))]
     (:revision (:attrs e))))
 
 ; A sequence of revision pairs for potential comparison -- e.g. for the revlist
@@ -102,11 +100,11 @@
   (let [restr (if term (str "[+-][^+-].*" term ".*") ".*")]
     (seq (filter #(re-matches (re-pattern restr) %) txtdiff))))
 
-; A sequence of files from the revision-pair diff with changed lines matching the
-; filter term. The first line of each block contains the file/path name from
-; the text diff header, with "Index:" stripped off. The rest of the lines contain
-; the +/- changed lines. Process all blocks recursively to produce the list of
-; matching files.
+; A sequence of files from the revision-pair diff with changed lines matching
+; the filter term. The first line of each block contains the file/path name from
+; the text diff header, with "Index:" stripped off. The rest of the lines
+; contain the +/- changed lines. Process all blocks recursively to produce the
+; list of matching files.
 
 (defn matchfiles [blocks]
   (when (seq blocks)
@@ -124,12 +122,12 @@
   (matchfiles (rest (split (:out (txtdiff r1 r2)) #"^Index: |\nIndex: "))))
 
 ; Run "svn diff" on the file/pathname in index. The format of the file/path name
-; following "Index:" in diff's output depends on the argument: If the argument is
-; a filesystem pathname, the index name is absolute, and we can simply use that.
-; If the argument is a uri, the index name is relative to the base item name. If
-; the base item name was the uri to a file (and therefore a complete pathname) we
-; can use item; if it was the uri to a directory, we have to concatenate the item
-; and index to form a complete pathname.
+; following "Index:" in diff's output depends on the argument: If the argument
+; is a filesystem pathname, the index name is absolute, and we can simply use
+; that. If the argument is a uri, the index name is relative to the base item
+; name. If the base item name was the uri to a file (and therefore a complete
+; pathname) we can use item; if it was the uri to a directory, we have to
+; concatenate the item and index to form a complete pathname.
 
 (defn diff [r1 r2 index]
   (let [r (re-pattern (str "^.*/" index "$"))
@@ -145,8 +143,7 @@
 
 (defn diffrevpairs [revpairs]
   (when (seq revpairs)
-    (let [r1 (first revpairs) r2 (first (rest revpairs))
-          fd (filediffs r1 r2)]
+    (let [r1 (first revpairs) r2 (first (rest revpairs)) fd (filediffs r1 r2)]
       (println (str "Checking: r" r1 " vs r" r2))
       (doseq [index fd] (diff r1 r2 index))
       (diffrevpairs (rest (rest revpairs))))))
