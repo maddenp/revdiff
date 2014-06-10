@@ -17,8 +17,3 @@ If the optional second argument is supplied, only diffs in which the argument wa
 ### Usage
 
 `revdiff item [term]`
-
-### License
-
-The contents of this repository are released under the [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) license. See the LICENSE file for details.
-
