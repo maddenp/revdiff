@@ -122,7 +122,7 @@
       (diffrevpairs (rest (rest revpairs))))))
 
 (defn usage []
-  (println (str "\nUsage: " prog " item [term]\n"))
+  (println (str "\nUsage: revdiff item [term]\n"))
   (println "  item : svn uri or name of versioned working-copy object")
   (println "  term : only show diffs with term present on a changed line\n"))
 
