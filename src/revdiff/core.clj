@@ -1,41 +1,14 @@
-; Copyright 2012 Paul Madden (maddenp@colorado.edu)
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-; http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS,
-; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-; See the License for the specific language governing permissions and
-; limitations under the License.
-
-; DESCRIPTION
-;
-; Performs an "svn diff" on each pair of revisions between which the item
-; supplied as the first argument changed. The most recent change is shown
-; first. The item may name an svn uri or, if you are in an svn working copy,
-; the name of a versioned filesystem object. If a second agument is supplied,
-; diffs are restricted to those in which the argument was present on a changed
-; line. You may supply substrings, or use regular expressions in double-quotes,
-; i.e.: word or "\bword\b". Assumptions: (1) The svn binary is available on your
-; path; (2) You have previously authenticated with the svn server and have
-; allowed your credentials to be cached (there's no support here for interactive
-; authentication); (3) You have configured the behavior of "svn diff" to your
-; liking.
+(ns revdiff.core
+  (:gen-class)
+  (:import [java.io.StringBufferInputStream])
+  (:use [clojure.xml :only [parse]])
+  (:use [clojure.java.shell :only [sh]])
+  (:use [clojure.string :only [split split-lines trim]]))
 
 ; TODO add a debug toggle and some related verbose prints?
 ; TODO is --stop-on-copy on log really a good idea?
 ; TODO maybe print log message / committer info (could use awt/swing popup)?
 ; TODO pass all '--' options (e.g. --username) to svn?
-
-(ns revdiff
-  (:import [java.io.StringBufferInputStream])
-  (:use [clojure.xml :only [parse]])
-  (:use [clojure.java.shell :only [sh]])
-  (:use [clojure.string :only [split split-lines trim]]))
 
 (def args *command-line-args*)  ; for brevity's sake
 (def item (second args))        ; the query subject
@@ -153,4 +126,5 @@
   (println "  item : svn uri or name of versioned working-copy object")
   (println "  term : only show diffs with term present on a changed line\n"))
 
-(if (not item) (usage) (diffrevpairs (revpairs (revlist))))
+(defn -main [& args]
+  (if (not item) (usage) (diffrevpairs (revpairs (revlist)))))
