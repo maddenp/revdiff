@@ -9,7 +9,8 @@
 ;; TODO is --stop-on-copy on log really a good idea?
 ;; TODO maybe print log message / committer info (could use awt/swing popup)?
 ;; TODO pass all '--' options (e.g. --username) to svn?
-;; TODO item, term used to be global: refactor to avoid passing them so much
+;; TODO item, term used to be global: refactor to avoid passing them so much!
+;; TODO add command-line switch for case insensitivity!
 
 (def shhh "--non-interactive")  ; suppress svn user prompts
 
