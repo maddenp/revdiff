@@ -39,7 +39,7 @@
           r2 (first (rest revpairs))
           mf (matching-files r1 r2 item filt)]
       (println (str "Checking: r" r1 " vs r" r2))
-      (doseq [object mf] (svndiff r1 r2 object item))
+      (doseq [filename mf] (svndiff r1 r2 filename item))
       (diffrevpairs item filt (rest (rest revpairs))))))
 
 ;; Try to explain why this has failed.
@@ -51,7 +51,6 @@
   (println))
 
 ;; Return a string containing the xml-formatted svn log for the requested item.
-;; Stop on copy to avoid following the history of a differently-named object.
 
 (defn log [item]
   (:out (sh "svn" "log" shhh "--stop-on-copy" "--xml" item)))
@@ -95,20 +94,14 @@
     (concat (list (first (rest revlist)) (first revlist))
             (revpairs (rest revlist) item))))
 
-;; Run "svn diff" on the file/pathname in object. The format of the file/path
-;; name following "Index:" in diff's output depends on the argument: If the
-;; argument is a filesystem pathname, the object name is absolute, and we can
-;; simply use that. If the argument is a uri, the object name is relative to the
-;; base item name. If the base item name was the uri to a file (and therefore a
-;; complete pathname) we can use item; if it was the uri to a directory, we have
-;; to concatenate the item and object to form a complete pathname.
+;; WRITE NEW COMMENT HERE
 
-(defn svndiff [r1 r2 object item]
+(defn svndiff [r1 r2 filename item]
   (let [item (baseitem item)
-        r (re-pattern (str "^.*/" object "$"))
+        r (re-pattern (str "^.*/" filename "$"))
         p (if (uri? item)
-            (if (re-matches r item) item (str item "/" object))
-            object)
+            (if (re-matches r item) item (str item "/" filename))
+            filename)
         v (vpaths r1 r2 p item)]
     (sh "svn" "diff" (first v) (second v))))
 
