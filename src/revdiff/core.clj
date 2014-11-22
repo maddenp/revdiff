@@ -100,7 +100,7 @@
     (concat (list (first (rest revlist)) (first revlist))
             (revpairs (rest revlist) object))))
 
-;; WRITE NEW COMMENT HERE
+;; NEED NEW COMMENT HERE
 
 (defn svndiff [r1 r2 filename object]
   (let [object (baseobject object)
@@ -119,7 +119,7 @@
 
 (defn usage []
   (println (str "\nUsage: revdiff object [regexp]\n"))
-  (println "  object : svn URI or name of versioned working-copy object")
+  (println "  object : svn URI or name of versioned object in working-copy")
   (println "  regexp : only show diffs where a changed line matches regexp\n"))
 
 ;; If object is a uri, the "-rn:m" revision-range format will not work if object
