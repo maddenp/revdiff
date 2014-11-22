@@ -54,7 +54,11 @@
 ;; object.
 
 (defn log [object]
-  (:out (sh "svn" "log" shhh "--stop-on-copy" "--xml" object)))
+  (print "Fetching log...")
+  (flush)
+  (let [log (:out (sh "svn" "log" shhh "--stop-on-copy" "--xml" object))]
+    (println)
+    log))
 
 ;; Obtain a diff from svn for the given object between the specified revisions.
 ;; Break each diff into blocks (delineated by the text "Index: "), where each
