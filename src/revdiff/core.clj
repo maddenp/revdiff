@@ -29,11 +29,12 @@
 ;; A newest-first sequence of revision numbers in which the item changed
 
 (defn revlist [item]
-  (for [e (try
-            (xml-seq (parse (java.io.StringBufferInputStream. (log item))))
-            (catch Exception e (errmsg)))
-        :when (seq (:attrs e))]
-    (:revision (:attrs e))))
+  (let [logstream (java.io.ByteArrayInputStream. (.getBytes (log item)))]
+    (for [e (try
+              (xml-seq (parse logstream))
+              (catch Exception e (errmsg)))
+          :when (seq (:attrs e))]
+    (:revision (:attrs e)))))
 
 ;; A sequence of revision pairs for potential comparison -- e.g. for the revlist
 ;; (9 8 6 4 1), return (8 9 6 8 4 6 1 4).
