@@ -61,14 +61,14 @@
 
 (defn txtdiff [r1 r2 item]
   (let [v (vpaths r1 r2 item item)]
-    (sh "svn" "diff" "--diff-cmd" "diff" shhh (first v) (second v))))
+    (sh "svn" "diff" "--diff-cmd" "diff" "-x" "-u0" shhh (first v) (second v))))
 
 ;; A sequence (possibly nil) of the changed lines (denoted by a leading + or -)
 ;; from the given text diff, filtered by the filter term, if provided.
 
-(defn matches? [txtdiff term]
+(defn matches? [txt_diff term]
   (let [restr (if term (str "[+-][^+-].*" term ".*") ".*")]
-    (seq (filter #(re-matches (re-pattern restr) %) txtdiff))))
+    (seq (filter #(re-matches (re-pattern restr) %) txt_diff))))
 
 ;; A sequence of files from the revision-pair diff with changed lines matching
 ;; the filter term. The first line of each block contains the file/path name from
