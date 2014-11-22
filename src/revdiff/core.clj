@@ -7,6 +7,7 @@
 (ns revdiff.core
   (:gen-class)
   (:import [java.io.StringBufferInputStream])
+  (:require [clojure.tools.cli :as cli])
   (:use [clojure.xml :only [parse]])
   (:use [clojure.java.shell :only [sh]])
   (:use [clojure.string :only [split split-lines trim]]))
@@ -21,6 +22,19 @@
 
 (defn baseobject [object]
   (clojure.string/replace object #"@[0-9]+$" ""))
+
+;;;; Command-line interface options.
+;;
+;;(def cliopts
+;; [["-c" "--create"     "Create new namelist"                                                              ]
+;;  ["-f" "--format fmt" "Output in format 'fmt' (default: namelist)"   :assoc-fn assoc-f :parse-fn parse-f ]
+;;  ["-g" "--get n:k"    "Get value of key 'k' in namelist 'n'"         :assoc-fn assoc-g :parse-fn parse-g ]
+;;  ["-h" "--help"       "Show usage information"                                                           ]
+;;  ["-i" "--in file"    "Input file (default: stdin)"                  :assoc-fn assoc-i                   ]
+;;  ["-n" "--no-prefix"  "Report values without 'namelist:key=' prefix"                                     ]
+;;  ["-o" "--out file"   "Output file (default: stdout)"                :assoc-fn assoc-o                   ]
+;;  ["-s" "--set n:k=v"  "Set value of key 'k' in namelist 'n' to 'v'"  :assoc-fn assoc-s :parse-fn parse-s ]
+;;  ["-v" "--version"    "Show version information"                                                         ]])
 
 ;; A string containing the output of "diff" on the two svn revision of object.
 
@@ -132,7 +146,20 @@
     (list (str path "@" r1) (str path "@" r2))
     (list (str "-r" r1 ":" r2) path)))
 
+;;(defn- assoc-s [m k v]
+;; (let [sets (:set m [])]
+;;   (assoc m :set (into sets [v]))))
+;;(defn- parse-s [x]
+;; (let [[nml+key val] (string/split x #"=" 2)
+;;       [nml key] (parse-g nml+key)]
+;;   [nml key val]))
+
 (defn -main [& args]
+;; (let [{:keys [options arguments summary]} (cli/parse-opts args cliopts)
+;;       gets (:get options)
+;;       sets (:set options)
+;;       in   (or (:in  options) *in* )
+;;       out  (or (:out options) *out*)]
   (let [object (first args) filt (or (second args) ".*")]
     (if (not object)
       (usage)
