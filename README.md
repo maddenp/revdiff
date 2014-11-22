@@ -20,7 +20,7 @@ Usage: revdiff object [regexp]
 
 The _revdiff_ wrapper script expects to find the Leiningen-generated _revdiff.jar_ in the same directory as the script itself. (A symlink is provided in this repository.) It may be convenient to edit this script for your own use.
 
-If the optional second argument is present, diffs are only shown only when some changed line matches the given regexp. The regexp must match a *complete* line, so to filter by _term_ you would supply the regexp _".\*term.\*"_. For case-insensitivity, prefix _regexp_ with _(?i)_, e.g. _"(?i).\*term.\*"_.
+If the optional second argument is present, diffs are only shown only when some changed line matches the given regexp. The regexp must match a **complete** line, so to filter by _term_ you would supply the regexp _".\*term.\*"_. For case-insensitivity, prefix _regexp_ with _(?i)_, e.g. _"(?i).\*term.\*"_.
 
 ### Prerequisites
 
