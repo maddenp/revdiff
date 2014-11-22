@@ -19,28 +19,28 @@
 
 ;; Strip peg revision, if present.
 
-(defn baseitem [item]
-  (clojure.string/replace item #"@[0-9]+$" ""))
+(defn baseobject [object]
+  (clojure.string/replace object #"@[0-9]+$" ""))
 
-;; A string containing the output of "diff" on the two svn revision of item.
+;; A string containing the output of "diff" on the two svn revision of object.
 
-(defn diff [r1 r2 item]
-  (let [item (baseitem item)
-        v (vpaths r1 r2 item item)]
+(defn diff [r1 r2 object]
+  (let [object (baseobject object)
+        v (vpaths r1 r2 object object)]
     (sh "svn" "diff" "--diff-cmd" "diff" "-x" "-u0" shhh (first v) (second v))))
 
 ;; Given a list of revision pairs, diff those for which the given filter term
 ;; (if any) is present on a changed line in that pair. If no filter term is
 ;; given, diff all changed files from all revision pairs.
 
-(defn diffrevpairs [item filt revpairs]
+(defn diffrevpairs [object filt revpairs]
   (when (seq revpairs)
     (let [r1 (first revpairs)
           r2 (first (rest revpairs))
-          mf (matching-files r1 r2 item filt)]
+          mf (matching-files r1 r2 object filt)]
       (println (str "Checking: r" r1 " vs r" r2))
-      (doseq [filename mf] (svndiff r1 r2 filename item))
-      (diffrevpairs item filt (rest (rest revpairs))))))
+      (doseq [filename mf] (svndiff r1 r2 filename object))
+      (diffrevpairs object filt (rest (rest revpairs))))))
 
 ;; Try to explain why this has failed.
 
@@ -50,20 +50,21 @@
   (println "- Your valid svn authentication credentials are not cached.")
   (println))
 
-;; Return a string containing the xml-formatted svn log for the requested item.
+;; Return a string containing the xml-formatted svn log for the requested
+;; object.
 
-(defn log [item]
-  (:out (sh "svn" "log" shhh "--stop-on-copy" "--xml" item)))
+(defn log [object]
+  (:out (sh "svn" "log" shhh "--stop-on-copy" "--xml" object)))
 
-;; Obtain a diff from svn for the given item between the specified revisions.
+;; Obtain a diff from svn for the given object between the specified revisions.
 ;; Break each diff into blocks (delineated by the text "Index: "), where each
 ;; block describes one file. The block's first line is the filename, and lines
 ;; beginning with a single '+' or '-' are the changes. Construct and return a
 ;; vector of the names of files where the filter term appears on a changed line.
 ;; If no filter term is given, a changed file automatically matches.
 
-(defn matching-files [r1 r2 item filt]
-  (let [blocks (rest (split (:out (diff r1 r2 item)) #"^Index: |\nIndex: "))]
+(defn matching-files [r1 r2 object filt]
+  (let [blocks (rest (split (:out (diff r1 r2 object)) #"^Index: |\nIndex: "))]
     (remove nil?
             (into []
                   (for [block blocks]
@@ -76,10 +77,11 @@
                           filename (trim (first all-lines))]
                       (if (some matching-line-in? changes) filename)))))))
 
-;; Return a newest-first sequence of revision numbers in which the item changed.
+;; Return a newest-first sequence of revision numbers in which the object
+;; changed.
 
-(defn revlist [item]
-  (let [logstream (java.io.ByteArrayInputStream. (.getBytes (log item)))]
+(defn revlist [object]
+  (let [logstream (java.io.ByteArrayInputStream. (.getBytes (log object)))]
     (for [e (try
               (xml-seq (parse logstream))
               (catch Exception e (errmsg)))
@@ -89,20 +91,20 @@
 ;; Return a sequence of revision pairs for potential comparison -- e.g. for the
 ;; revlist (9 8 6 4 1), return (8 9 6 8 4 6 1 4).
 
-(defn revpairs [revlist item]
+(defn revpairs [revlist object]
   (when (seq (rest revlist))
     (concat (list (first (rest revlist)) (first revlist))
-            (revpairs (rest revlist) item))))
+            (revpairs (rest revlist) object))))
 
 ;; WRITE NEW COMMENT HERE
 
-(defn svndiff [r1 r2 filename item]
-  (let [item (baseitem item)
+(defn svndiff [r1 r2 filename object]
+  (let [object (baseobject object)
         r (re-pattern (str "^.*/" filename "$"))
-        p (if (uri? item)
-            (if (re-matches r item) item (str item "/" filename))
+        p (if (uri? object)
+            (if (re-matches r object) object (str object "/" filename))
             filename)
-        v (vpaths r1 r2 p item)]
+        v (vpaths r1 r2 p object)]
     (sh "svn" "diff" (first v) (second v))))
 
 ;; Is path a uri? If it contains :// assume it is.
@@ -112,24 +114,24 @@
 ;; Print usage information.
 
 (defn usage []
-  (println (str "\nUsage: revdiff item [regex]\n"))
-  (println "  item  : svn uri or name of versioned working-copy object")
+  (println (str "\nUsage: revdiff object [regex]\n"))
+  (println "  object  : svn uri or name of versioned working-copy object")
   (println "  regex : only show diffs where a changed line matches regex\n"))
 
-;; If item is a uri, the "-rn:m" revision-range format will not work if item is
-;; no longer present in the head revision, in which case we have to use the
-;; "item@n item@m" revision-specification format. Return the correctly formatted
-;; versioned-path(s) string for use by a diff command.
+;; If object is a uri, the "-rn:m" revision-range format will not work if object
+;; is no longer present in the head revision, in which case we have to use the
+;; "object@n object@m" revision-specification format. Return the correctly
+;; formatted versioned-path(s) string for use by a diff command.
 
-(defn vpaths [r1 r2 path item]
-  (if (uri? item)
+(defn vpaths [r1 r2 path object]
+  (if (uri? object)
     (list (str path "@" r1) (str path "@" r2))
     (list (str "-r" r1 ":" r2) path)))
 
 (defn -main [& args]
-  (let [item (first args) filt (or (second args) ".*")]
-    (if (not item)
+  (let [object (first args) filt (or (second args) ".*")]
+    (if (not object)
       (usage)
       (do
-        (diffrevpairs item filt (revpairs (revlist item) item))
+        (diffrevpairs object filt (revpairs (revlist object) object))
         (shutdown-agents)))))
