@@ -18,6 +18,7 @@
 ;; copy to avoid following the history of a differently-named object.
 
 (defn log [item] (:out (sh "svn" "log" shhh "--stop-on-copy" "--xml" item)))
+;;(defn log [item] (slurp "xml"))
 
 ;; Try to explain why this has failed.
 
@@ -61,37 +62,28 @@
   
 ;; A string containing the output of "diff" on the two svn revision of item.
 
-(defn txtdiff [r1 r2 item]
+(defn diff [r1 r2 item]
   (let [v (vpaths r1 r2 item item)]
     (sh "svn" "diff" "--diff-cmd" "diff" "-x" "-u0" shhh (first v) (second v))))
 
-;; A sequence (possibly nil) of the changed lines (denoted by a leading + or -)
-;; from the given text diff, filtered by the filter term, if provided.
+;; Obtain a diff from svn for the given item between the specified revisions.
+;; Break each diff into blocks (delineated by the text "Index: "), where each
+;; block describes one file. The block's first line is the filename, and lines
+;; beginning with a single '+' or '-' are the changes. Construct and return a
+;; vector of the names of files where the filter term appears on a changed line.
+;; If no filter term is given, a changed file automatically matches.
 
-(defn matches? [txt_diff term]
-  (let [restr (if term (str "[+-][^+-].*" term ".*") ".*")]
-    (seq (filter #(re-matches (re-pattern restr) %) txt_diff))))
-
-;; A sequence of files from the revision-pair diff with changed lines matching
-;; the filter term. The first line of each block contains the file/path name from
-;; the text diff header, with "Index:" stripped off. The rest of the lines
-;; contain the +/- changed lines. Process all blocks recursively to produce the
-;; list of matching files.
-
-(defn matchfiles [blocks term]
-  (when (seq blocks)
-    (let [lines (split-lines (first blocks))
-          fname (trim (first lines))
-          match (matches? (rest lines) term)]
-      (concat (when match (list fname)) (matchfiles (rest blocks) term)))))
-
-;; A wrapper for matchfiles: provides a sequence of blocks from the text diff,
-;; each block delineated by an "Index:" tag (either in the first position of
-;; the string, or at the start of a line). Returns the sequence of filenames
-;; produced recursively by matchfiles.
-
-(defn filediffs [r1 r2 term item]
-  (matchfiles (rest (split (:out (txtdiff r1 r2 item)) #"^Index: |\nIndex: ")) term))
+(defn matching-files [r1 r2 item term]
+  (let [blocks (rest (split (:out (diff r1 r2 item)) #"^Index: |\nIndex: "))]
+    (remove nil?
+            (into []
+                  (for [block blocks]
+                    (let [lines (split-lines block)
+                          filename (trim (first lines))
+                          changes (filter #(re-matches #"^[+-][^+-].*" %) lines)
+                          re (re-pattern (str ".*" term ".*"))
+                          matching-line-in #(re-matches re %)]
+                      (if (some matching-line-in changes) filename)))))))
 
 ;; Run "svn diff" on the file/pathname in index. The format of the file/path name
 ;; following "Index:" in diff's output depends on the argument: If the argument
@@ -101,7 +93,7 @@
 ;; pathname) we can use item; if it was the uri to a directory, we have to
 ;; concatenate the item and index to form a complete pathname.
 
-(defn diff [r1 r2 index item]
+(defn svndiff [r1 r2 index item]
   (let [r (re-pattern (str "^.*/" index "$"))
         p (if (uri? item)
             (if (re-matches r item) item (str item "/" index))
@@ -115,9 +107,11 @@
 
 (defn diffrevpairs [item term revpairs]
   (when (seq revpairs)
-    (let [r1 (first revpairs) r2 (first (rest revpairs)) fd (filediffs r1 r2 term item)]
+    (let [r1 (first revpairs)
+          r2 (first (rest revpairs))
+          mf (matching-files r1 r2 item term)]
       (println (str "Checking: r" r1 " vs r" r2))
-      (doseq [index fd] (diff r1 r2 index item))
+      (doseq [index mf] (svndiff r1 r2 index item))
       (diffrevpairs item term (rest (rest revpairs))))))
 
 (defn usage []
