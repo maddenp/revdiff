@@ -114,9 +114,9 @@
 ;; Print usage information.
 
 (defn usage []
-  (println (str "\nUsage: revdiff object [regex]\n"))
-  (println "  object  : svn uri or name of versioned working-copy object")
-  (println "  regex : only show diffs where a changed line matches regex\n"))
+  (println (str "\nUsage: revdiff object [regexp]\n"))
+  (println "  object : svn URI or name of versioned working-copy object")
+  (println "  regexp : only show diffs where a changed line matches regexp\n"))
 
 ;; If object is a uri, the "-rn:m" revision-range format will not work if object
 ;; is no longer present in the head revision, in which case we have to use the
