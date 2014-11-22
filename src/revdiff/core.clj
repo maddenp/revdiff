@@ -85,13 +85,13 @@
                           matching-line-in #(re-matches re %)]
                       (if (some matching-line-in changes) filename)))))))
 
-;; Run "svn diff" on the file/pathname in index. The format of the file/path name
-;; following "Index:" in diff's output depends on the argument: If the argument
-;; is a filesystem pathname, the index name is absolute, and we can simply use
-;; that. If the argument is a uri, the index name is relative to the base item
-;; name. If the base item name was the uri to a file (and therefore a complete
-;; pathname) we can use item; if it was the uri to a directory, we have to
-;; concatenate the item and index to form a complete pathname.
+;; Run "svn diff" on the file/pathname in index. The format of the file/path
+;; name following "Index:" in diff's output depends on the argument: If the
+;; argument is a filesystem pathname, the index name is absolute, and we can
+;; simply use that. If the argument is a uri, the index name is relative to the
+;; base item name. If the base item name was the uri to a file (and therefore a
+;; complete pathname) we can use item; if it was the uri to a directory, we have
+;; to concatenate the item and index to form a complete pathname.
 
 (defn svndiff [r1 r2 index item]
   (let [r (re-pattern (str "^.*/" index "$"))
