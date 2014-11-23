@@ -1,8 +1,5 @@
-;; TODO add a debug toggle and some related verbose prints?
-;; TODO maybe print log message / committer info (could use awt/swing popup)?
-;; TODO pass all '--' options (e.g. --username) to svn?
-;; TODO add command-line switch for case insensitivity!
 ;; TODO make get-revpairs non-recursive?
+;; TODO make diffrevpairs non-recursive?
 
 (ns revdiff.core
   (:gen-class)
@@ -53,14 +50,14 @@
 ;; (if any) is present on a changed line in that pair. If no filter term is
 ;; given, diff all changed files from all revision pairs.
 
-(defn diffrevpairs [object filt revpairs show]
+(defn diffrevpairs [object filt revpairs show insens]
   (when (seq revpairs)
     (let [r1 (first revpairs)
           r2 (first (rest revpairs))
-          mf (matching-files r1 r2 object filt show)]
+          mf (matching-files r1 r2 object filt show insens)]
       (println (str "Checking: r" r1 " vs r" r2))
       (doseq [filename mf] (svndiff r1 r2 filename object show))
-      (diffrevpairs object filt (rest (rest revpairs)) show))))
+      (diffrevpairs object filt (rest (rest revpairs)) show insens))))
 
 ;; Try to explain why this has failed.
 
@@ -109,8 +106,10 @@
 ;; vector of the names of files where the filter term appears on a changed line.
 ;; If no filter term is given, a changed file automatically matches.
 
-(defn matching-files [r1 r2 object filt show]
-  (let [blocks (rest (split (:out (diff r1 r2 object show)) #"^Index: |\nIndex: "))]
+(defn matching-files [r1 r2 object filt show insens]
+  (let [raw (:out (diff r1 r2 object show))
+        blocks (rest (split raw #"^Index: |\nIndex: "))
+        filt (if insens (str "(?i)" filt) filt)]
     (remove nil?
             (into []
                   (for [block blocks]
@@ -166,6 +165,7 @@
   (let [{:keys [options arguments summary]} (cli/parse-opts args cliopts)
         object (first arguments)
         filt (or (second arguments) ".*")
+        insens (:case-insensitive options)
         optsd (:diff-opts options)
         optsl (:log-opts options)
         show (:show-cmds options)]
@@ -174,5 +174,5 @@
       (usage summary 1)
       (let [revlist (get-revlist optsl show object)
             revpairs (get-revpairs revlist object)]
-        (diffrevpairs object filt revpairs show)
+        (diffrevpairs object filt revpairs show insens)
         (shutdown-agents)))))
