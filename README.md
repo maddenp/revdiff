@@ -28,10 +28,24 @@ Usage: revdiff [options] object [regexp]
 
 The `revdiff` wrapper script looks for the Leiningen-generated `revdiff.jar` in the same directory as the script itself. It may be convenient to edit this script for your own use.
 
-If the optional second argument is present, diffs are only shown only when some changed line matches the given regexp. The regexp must match a **complete** line, so e.g. to filter by `term`, supply the regexp `".\*term.\*"`.
+If the optional second argument is present, diffs are only shown only when some changed line matches the given regexp. The regexp must match a **complete** line, so e.g. to filter by `term`, supply the regexp `".*term.*"`.
 
-Use the `-d` and `-l` options with caution. Some svn options (like `--stop-on-copy` for the `svn log` command) are quite useful; others may interfere with options automatically passed to svn (like `--xml`). The `-s` command can be used to show the actual svn commands being executed and may be useful for debugging problems encountered when using `-d` or `-l`.
+Use the `-d` and `-l` options with caution. Some svn options (like `--stop-on-copy` for the `svn log` command) are quite useful; others may interfere with options automatically passed to svn (like `--xml`). The `-s` command can be used to show the actual svn commands being executed, and may be useful for debugging problems encountered when using `-d` or `-l`.
 
+### Examples
+
+* Show all diffs on _src/init.F90_, over the full history of branch _b_ of _project_, via URL:
+````
+  revdiff -l '--stop-on-copy' https://example.com/svn/project/branches/b/src/init.F90
+````
+* Show diffs on working-copy source files where a C _#ifdef_ appeared or disappeared:
+````
+  revdiff src/ "^\s*#ifdef"
+````
+* Show diffs on _dir/file_ on the trunk of _project_, starting at revision 101 and working backwards, where the word _calgary_ (case insensitive) appears on one or more changed lines:
+````
+  revdiff -i https://example.com/svn/project/trunk/dir/file@101 ".*calgary.*"
+````
 ### Prerequisites
 
 - The `svn` binary must be on your path.
