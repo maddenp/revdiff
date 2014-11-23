@@ -1,4 +1,3 @@
-;; TODO make get-revpairs non-recursive?
 ;; TODO make diffrevpairs non-recursive?
 
 (ns revdiff.core
@@ -82,9 +81,7 @@
 ;; revlist (9 8 6 4 1), return (8 9 6 8 4 6 1 4).
 
 (defn get-revpairs [revlist object]
-  (when (seq (rest revlist))
-    (concat (list (first (rest revlist)) (first revlist))
-            (get-revpairs (rest revlist) object))))
+  (interleave (rest revlist) (butlast revlist)))
 
 ;; Return a string containing the xml-formatted svn log for the requested
 ;; object.
