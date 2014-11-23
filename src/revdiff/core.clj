@@ -10,13 +10,19 @@
   (:require [clojure.tools.cli :as cli])
   (:use [clojure.xml :only [parse]])
   (:use [clojure.java.shell :only [sh]])
-  (:use [clojure.string :only [split split-lines trim]]))
+  (:use [clojure.string :only [join split split-lines trim]]))
 
-(declare matching-files log svndiff uri? vpaths)
+(declare matching-files log squeeze svndiff uri? vpaths)
 
-;; Suppress svn user prompts.
+;; defs
 
 (def shhh "--non-interactive")
+
+(def show-cmd #(println (str "Command: " (squeeze (join " " %)))))
+
+(def squeeze #(clojure.string/replace % #"\s\s+" " "))
+
+;; defns
 
 ;; Strip peg revision, if present.
 
@@ -29,27 +35,32 @@
   [["-h" "--help" "Show usage information"]
    ["-i" "--case-insensitive" "Treat regexp as case-insensitive"]
    ["-d" "--diff-opts options" "Quoted list of options to pass to svn diff"]
-   ["-l" "--log-opts options" "Quoted list of options to pass to svn log"]])
+   ["-l" "--log-opts options" "Quoted list of options to pass to svn log"]
+   ["-s" "--show-cmds" "Show the svn commands taht are issued"]])
 
 ;; A string containing the output of "diff" on the two svn revision of object.
 
-(defn diff [r1 r2 object]
+(defn diff [r1 r2 object show]
   (let [object (baseobject object)
-        v (vpaths r1 r2 object object)]
-    (sh "svn" "diff" "--diff-cmd" "diff" "-x" "-u0" shhh (first v) (second v))))
+        v (vpaths r1 r2 object object)
+        o1 (first v)
+        o2 (second v)
+        cmd-components ["svn" "diff" "--diff-cmd" "diff" "-x" "-u0" shhh o1 o2]]
+    (if show (show-cmd cmd-components))
+    (apply sh cmd-components)))
 
 ;; Given a list of revision pairs, diff those for which the given filter term
 ;; (if any) is present on a changed line in that pair. If no filter term is
 ;; given, diff all changed files from all revision pairs.
 
-(defn diffrevpairs [object filt revpairs]
+(defn diffrevpairs [object filt revpairs show]
   (when (seq revpairs)
     (let [r1 (first revpairs)
           r2 (first (rest revpairs))
-          mf (matching-files r1 r2 object filt)]
+          mf (matching-files r1 r2 object filt show)]
       (println (str "Checking: r" r1 " vs r" r2))
-      (doseq [filename mf] (svndiff r1 r2 filename object))
-      (diffrevpairs object filt (rest (rest revpairs))))))
+      (doseq [filename mf] (svndiff r1 r2 filename object show))
+      (diffrevpairs object filt (rest (rest revpairs)) show))))
 
 ;; Try to explain why this has failed.
 
@@ -62,10 +73,10 @@
 ;; Return a newest-first sequence of revision numbers in which the object
 ;; changed.
 
-(defn get-revlist [opts object]
-  (let [logstream (java.io.ByteArrayInputStream. (.getBytes (log opts object)))]
+(defn get-revlist [opts show object]
+  (let [x (java.io.ByteArrayInputStream. (.getBytes (log opts show object)))]
     (for [e (try
-              (xml-seq (parse logstream))
+              (xml-seq (parse x))
               (catch Exception e (errmsg)))
           :when (seq (:attrs e))]
     (:revision (:attrs e)))))
@@ -81,12 +92,15 @@
 ;; Return a string containing the xml-formatted svn log for the requested
 ;; object.
 
-(defn log [opts object]
-  (print "Fetching log... ")
-  (flush)
-  (let [log (:out (sh "svn" "log" opts shhh "--xml" object))]
-    (println)
-    log))
+(defn log [opts show object]
+  (let [cmd-components (if opts ["svn" "log" shhh "--xml" opts object]
+                                ["svn" "log" shhh "--xml"      object])]
+    (if show (show-cmd cmd-components))
+    (print "Fetching log... ")
+    (flush)
+    (let [result (:out (apply sh cmd-components))]
+      (println)
+      result)))
 
 ;; Obtain a diff from svn for the given object between the specified revisions.
 ;; Break each diff into blocks (delineated by the text "Index: "), where each
@@ -95,8 +109,8 @@
 ;; vector of the names of files where the filter term appears on a changed line.
 ;; If no filter term is given, a changed file automatically matches.
 
-(defn matching-files [r1 r2 object filt]
-  (let [blocks (rest (split (:out (diff r1 r2 object)) #"^Index: |\nIndex: "))]
+(defn matching-files [r1 r2 object filt show]
+  (let [blocks (rest (split (:out (diff r1 r2 object show)) #"^Index: |\nIndex: "))]
     (remove nil?
             (into []
                   (for [block blocks]
@@ -111,14 +125,16 @@
 
 ;; NEED NEW COMMENT HERE
 
-(defn svndiff [r1 r2 filename object]
+(defn svndiff [r1 r2 filename object show]
   (let [object (baseobject object)
         r (re-pattern (str "^.*/" filename "$"))
         p (if (uri? object)
             (if (re-matches r object) object (str object "/" filename))
             filename)
-        v (vpaths r1 r2 p object)]
-    (sh "svn" "diff" (first v) (second v))))
+        v (vpaths r1 r2 p object)
+        cmd-components ["svn" "diff" (first v) (second v)]]
+    (if show (show-cmd cmd-components))
+    (apply sh cmd-components)))
 
 ;; Is path a uri? If it contains :// assume it is.
 
@@ -151,10 +167,12 @@
         object (first arguments)
         filt (or (second arguments) ".*")
         optsd (:diff-opts options)
-        optsl (:log-opts options)]
+        optsl (:log-opts options)
+        show (:show-cmds options)]
     (if (:help options) (usage summary 0))
     (if (not object)
       (usage summary 1)
-      (let [revpairs (get-revpairs (get-revlist optsl object) object)]
-        (diffrevpairs object filt revpairs)
+      (let [revlist (get-revlist optsl show object)
+            revpairs (get-revpairs revlist object)]
+        (diffrevpairs object filt revpairs show)
         (shutdown-agents)))))
