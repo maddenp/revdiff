@@ -116,15 +116,19 @@
                           filename (trim (first all-lines))]
                       (if (some matching-line-in? changes) filename)))))))
 
-;; NEED NEW COMMENT HERE
+;; If the object under investigation is a uri, and if it already ends with the
+;; given filename (e.g. when the object names a file) as the absolute pathname.
+;; Otherwise (e.g. when the object names a directory), append the filename to
+;; the object to form the absolute pathname. If the object is a filesystem name,
+;; just use the filename. Construct versioned pathnames and svn diff them.
 
 (defn svndiff [r1 r2 filename object show]
   (let [object (baseobject object)
-        r (re-pattern (str "^.*/" filename "$"))
-        p (if (uri? object)
-            (if (re-matches r object) object (str object "/" filename))
+        re (re-pattern (str "^.*/" filename "$"))
+        abs-path (if (uri? object)
+            (if (re-matches re object) object (str object "/" filename))
             filename)
-        v (vpaths r1 r2 p object)
+        v (vpaths r1 r2 abs-path object)
         cmd-components ["svn" "diff" (first v) (second v)]]
     (if show (show-cmd cmd-components))
     (apply sh cmd-components)))
