@@ -1,7 +1,7 @@
 revdiff
 =======
 
-Performs an _svn diff_ on each pair of revisions between which the object supplied as the first argument changed. The most recent changes are shown first. The object may be an svn URI or the name of a versioned filesystem object (i.e. a file or directory in a checked-out working copy). The svn binary is invoked with the _--stop-on-copy_ flag.
+Performs an `svn diff` on each pair of revisions between which the object supplied as the first argument changed. The most recent changes are shown first. The object may be an svn URI or the name of a versioned filesystem object (i.e. a file or directory in a checked-out working copy).
 
 ###Build
 
@@ -12,18 +12,28 @@ Install [Leiningen](http://leiningen.org/) if you don't have it, then:
 ###Run
 
 ````
-Usage: revdiff object [regexp]
+Usage: revdiff [options] object [regexp]
 
-  object : svn URI or name of versioned object in working-copy
-  regexp : only show diffs where a changed line matches regexp
+  Options:
+
+  -h, --help               Show usage information
+  -i, --case-insensitive   Treat regexp as case-insensitive
+  -d, --diff-opts options  Quoted list of options to pass to svn diff
+  -l, --log-opts options   Quoted list of options to pass to svn log
+  -s, --show-cmds          Show svn commands as they are issued
+
+  object: svn URI or name of versioned object in working-copy
+  regexp: only show diffs where a changed line matches regexp
 ````
 
-The _revdiff_ wrapper script expects to find the Leiningen-generated _revdiff.jar_ in the same directory as the script itself. (A symlink is provided in this repository.) It may be convenient to edit this script for your own use.
+The `revdiff` wrapper script looks for the Leiningen-generated `revdiff.jar` in the same directory as the script itself. It may be convenient to edit this script for your own use.
 
-If the optional second argument is present, diffs are only shown only when some changed line matches the given regexp. The regexp must match a **complete** line, so to filter by _term_ you would supply the regexp _".\*term.\*"_. For case-insensitivity, prefix _regexp_ with _(?i)_, e.g. _"(?i).\*term.\*"_.
+If the optional second argument is present, diffs are only shown only when some changed line matches the given regexp. The regexp must match a **complete** line, so e.g. to filter by `term`, supply the regexp `".\*term.\*"`.
+
+Use the `-d` and `-l` options with caution. Some svn options (like `--stop-on-copy` for the `svn log` command) are quite useful; others may interfere with options automatically passed to svn (like `--xml`). The `-s` command can be used to show the actual svn commands being executed and may be useful for debugging problems encountered when using `-d` or `-l`.
 
 ### Prerequisites
 
-- The _svn_ binary must be available on your path.
-- Set up your svn client to display diffs to your liking. A graphical diff tool like [xxdiff](http://furius.ca/xxdiff) is recommended (you may need a [glue script](http://svnbook.red-bean.com/en/1.6/svn.advanced.externaldifftools.html#svn.advanced.externaldifftools.diff)). One benefit of this configuration is that the diff of the next revision pair is not displayed until you finish with the current one and exit the diff tool.
-- You have previously authenticated with the svn repository in question and have allowed your credentials to be cached (_revdiff_ does not support interactive authentication). If you are having trouble, try issuing a command like _svn log object_, where _object_ is a URI or a filesystem object.
+- The `svn` binary must be on your path.
+- Set up your svn client to display diffs as you like them. A graphical diff tool like [xxdiff](http://furius.ca/xxdiff) is recommended (you may need a [glue script](http://svnbook.red-bean.com/en/1.6/svn.advanced.externaldifftools.html#svn.advanced.externaldifftools.diff)). One benefit of this configuration is that the diff of the next revision pair is not displayed until you finish with the current one and exit the diff tool.
+- You must have previously authenticated with the svn repository in question and allowed your credentials to be cached (interactive authentication is not supported). If you are having trouble, try issuing a command like `svn log object`, where `object` is a URI or a filesystem object. This should give you an opportunity to authenticate and cache your credentials.
