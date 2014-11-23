@@ -40,7 +40,7 @@ Use the `-d` and `-l` options with caution. Some svn options (like `--stop-on-co
 ````
 * Show diffs on working-copy source files where a C `#ifdef` appeared or disappeared:
 ````
-  revdiff src/ "^\s*#ifdef"
+  revdiff src/ "^\s*#ifdef.*"
 ````
 * Show diffs on _dir/file_ on the trunk of _project_, starting at revision 101 and working backwards, where the word _calgary_ (case insensitive) appears on one or more changed lines:
 ````
