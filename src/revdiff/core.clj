@@ -33,7 +33,7 @@
    ["-i" "--case-insensitive" "Treat regexp as case-insensitive"]
    ["-d" "--diff-opts options" "Quoted list of options to pass to svn diff"]
    ["-l" "--log-opts options" "Quoted list of options to pass to svn log"]
-   ["-s" "--show-cmds" "Show the svn commands taht are issued"]])
+   ["-s" "--show-cmds" "Show svn commands as they are issued"]])
 
 ;; A string containing the output of "diff" on the two svn revision of object.
 
