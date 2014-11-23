@@ -2,6 +2,7 @@
 ;; TODO maybe print log message / committer info (could use awt/swing popup)?
 ;; TODO pass all '--' options (e.g. --username) to svn?
 ;; TODO add command-line switch for case insensitivity!
+;; TODO make get-revpairs non-recursive?
 
 (ns revdiff.core
   (:gen-class)
@@ -69,6 +70,14 @@
           :when (seq (:attrs e))]
     (:revision (:attrs e)))))
 
+;; Return a sequence of revision pairs for potential comparison -- e.g. for the
+;; revlist (9 8 6 4 1), return (8 9 6 8 4 6 1 4).
+
+(defn get-revpairs [revlist object]
+  (when (seq (rest revlist))
+    (concat (list (first (rest revlist)) (first revlist))
+            (get-revpairs (rest revlist) object))))
+
 ;; Return a string containing the xml-formatted svn log for the requested
 ;; object.
 
@@ -100,14 +109,6 @@
                           filename (trim (first all-lines))]
                       (if (some matching-line-in? changes) filename)))))))
 
-;; Return a sequence of revision pairs for potential comparison -- e.g. for the
-;; revlist (9 8 6 4 1), return (8 9 6 8 4 6 1 4).
-
-(defn revpairs [revlist object]
-  (when (seq (rest revlist))
-    (concat (list (first (rest revlist)) (first revlist))
-            (revpairs (rest revlist) object))))
-
 ;; NEED NEW COMMENT HERE
 
 (defn svndiff [r1 r2 filename object]
@@ -130,6 +131,7 @@
   (println (str summary "\n"))
   (println "  object: svn URI or name of versioned object in working-copy")
   (println "  regexp: only show diffs where a changed line matches regexp\n")
+  (println "  See https://github.com/maddenp/revdiff for notes on options.\n")
   (System/exit code))
 
 ;; If object is a uri, the "-rn:m" revision-range format will not work if object
@@ -142,7 +144,6 @@
     (list (str path "@" r1) (str path "@" r2))
     (list (str "-r" r1 ":" r2) path)))
 
-
 ;; Entry point from command line.
 
 (defn -main [& args]
@@ -154,6 +155,6 @@
     (if (:help options) (usage summary 0))
     (if (not object)
       (usage summary 1)
-      (do
-        (diffrevpairs object filt (revpairs (get-revlist optsl object) object))
+      (let [revpairs (get-revpairs (get-revlist optsl object) object)]
+        (diffrevpairs object filt revpairs)
         (shutdown-agents)))))
