@@ -1,5 +1,3 @@
-;; TODO make diff-revpairs non-recursive?
-
 (ns revdiff.core
   (:gen-class)
   (:import [java.io.StringBufferInputStream])
@@ -45,18 +43,17 @@
     (if show (show-cmd cmd-components))
     (apply sh cmd-components)))
 
-;; Given a list of revision pairs, diff those for which the given filter term
-;; (if any) is present on a changed line in that pair. If no filter term is
-;; given, diff all changed files from all revision pairs.
+;; Show diffs for files that changed (modulo the optional filtering regexp)
+;; between each revision pair in the given list.
 
 (defn diff-revpairs [object filt revpairs show insens]
-  (when (seq revpairs)
-    (let [r1 (first revpairs)
-          r2 (first (rest revpairs))
+  (loop [x revpairs]
+    (let [r1 (first x)
+          r2 (second x)
           mf (matching-files r1 r2 object filt show insens)]
       (println (str "Checking: r" r1 " vs r" r2))
       (doseq [filename mf] (svndiff r1 r2 filename object show))
-      (diff-revpairs object filt (rest (rest revpairs)) show insens))))
+      (recur (drop 2 x)))))
 
 ;; Try to explain why this has failed.
 
