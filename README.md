@@ -38,7 +38,7 @@ Use the `-d` and `-l` options with caution. Some svn options (like `--stop-on-co
 ````
   revdiff -l '--stop-on-copy' https://example.com/svn/project/branches/b/src/init.F90
 ````
-* Show diffs on working-copy source files where a C _#ifdef_ appeared or disappeared:
+* Show diffs on working-copy source files where a C `#ifdef` appeared or disappeared:
 ````
   revdiff src/ "^\s*#ifdef"
 ````
