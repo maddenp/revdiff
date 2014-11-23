@@ -1,4 +1,4 @@
-;; TODO make diffrevpairs non-recursive?
+;; TODO make diff-revpairs non-recursive?
 
 (ns revdiff.core
   (:gen-class)
@@ -49,14 +49,14 @@
 ;; (if any) is present on a changed line in that pair. If no filter term is
 ;; given, diff all changed files from all revision pairs.
 
-(defn diffrevpairs [object filt revpairs show insens]
+(defn diff-revpairs [object filt revpairs show insens]
   (when (seq revpairs)
     (let [r1 (first revpairs)
           r2 (first (rest revpairs))
           mf (matching-files r1 r2 object filt show insens)]
       (println (str "Checking: r" r1 " vs r" r2))
       (doseq [filename mf] (svndiff r1 r2 filename object show))
-      (diffrevpairs object filt (rest (rest revpairs)) show insens))))
+      (diff-revpairs object filt (rest (rest revpairs)) show insens))))
 
 ;; Try to explain why this has failed.
 
@@ -171,5 +171,5 @@
       (usage summary 1)
       (let [revlist (get-revlist optsl show object)
             revpairs (get-revpairs revlist object)]
-        (diffrevpairs object filt revpairs show insens)
+        (diff-revpairs object filt revpairs show insens)
         (shutdown-agents)))))
