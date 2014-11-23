@@ -1,5 +1,4 @@
 ;; TODO add a debug toggle and some related verbose prints?
-;; TODO is --stop-on-copy on log really a good idea?
 ;; TODO maybe print log message / committer info (could use awt/swing popup)?
 ;; TODO pass all '--' options (e.g. --username) to svn?
 ;; TODO add command-line switch for case insensitivity!
@@ -12,7 +11,7 @@
   (:use [clojure.java.shell :only [sh]])
   (:use [clojure.string :only [split split-lines trim]]))
 
-(declare matching-files svndiff uri? vpaths)
+(declare matching-files log svndiff uri? vpaths)
 
 ;; Suppress svn user prompts.
 
@@ -23,18 +22,13 @@
 (defn baseobject [object]
   (clojure.string/replace object #"@[0-9]+$" ""))
 
-;;;; Command-line interface options.
-;;
-;;(def cliopts
-;; [["-c" "--create"     "Create new namelist"                                                              ]
-;;  ["-f" "--format fmt" "Output in format 'fmt' (default: namelist)"   :assoc-fn assoc-f :parse-fn parse-f ]
-;;  ["-g" "--get n:k"    "Get value of key 'k' in namelist 'n'"         :assoc-fn assoc-g :parse-fn parse-g ]
-;;  ["-h" "--help"       "Show usage information"                                                           ]
-;;  ["-i" "--in file"    "Input file (default: stdin)"                  :assoc-fn assoc-i                   ]
-;;  ["-n" "--no-prefix"  "Report values without 'namelist:key=' prefix"                                     ]
-;;  ["-o" "--out file"   "Output file (default: stdout)"                :assoc-fn assoc-o                   ]
-;;  ["-s" "--set n:k=v"  "Set value of key 'k' in namelist 'n' to 'v'"  :assoc-fn assoc-s :parse-fn parse-s ]
-;;  ["-v" "--version"    "Show version information"                                                         ]])
+;; Command-line interface options.
+
+(def cliopts
+  [["-h" "--help" "Show usage information"]
+   ["-i" "--case-insensitive" "Treat regexp as case-insensitive"]
+   ["-d" "--diff-opts options" "Quoted list of options to pass to svn diff"]
+   ["-l" "--log-opts options" "Quoted list of options to pass to svn log"]])
 
 ;; A string containing the output of "diff" on the two svn revision of object.
 
@@ -64,13 +58,24 @@
   (println "- Your valid svn authentication credentials are not cached.")
   (println))
 
+;; Return a newest-first sequence of revision numbers in which the object
+;; changed.
+
+(defn get-revlist [opts object]
+  (let [logstream (java.io.ByteArrayInputStream. (.getBytes (log opts object)))]
+    (for [e (try
+              (xml-seq (parse logstream))
+              (catch Exception e (errmsg)))
+          :when (seq (:attrs e))]
+    (:revision (:attrs e)))))
+
 ;; Return a string containing the xml-formatted svn log for the requested
 ;; object.
 
-(defn log [object]
-  (print "Fetching log...")
+(defn log [opts object]
+  (print "Fetching log... ")
   (flush)
-  (let [log (:out (sh "svn" "log" shhh "--stop-on-copy" "--xml" object))]
+  (let [log (:out (sh "svn" "log" opts shhh "--xml" object))]
     (println)
     log))
 
@@ -94,17 +99,6 @@
                           changes (map strip+- diff-lines)
                           filename (trim (first all-lines))]
                       (if (some matching-line-in? changes) filename)))))))
-
-;; Return a newest-first sequence of revision numbers in which the object
-;; changed.
-
-(defn revlist [object]
-  (let [logstream (java.io.ByteArrayInputStream. (.getBytes (log object)))]
-    (for [e (try
-              (xml-seq (parse logstream))
-              (catch Exception e (errmsg)))
-          :when (seq (:attrs e))]
-    (:revision (:attrs e)))))
 
 ;; Return a sequence of revision pairs for potential comparison -- e.g. for the
 ;; revlist (9 8 6 4 1), return (8 9 6 8 4 6 1 4).
@@ -131,10 +125,12 @@
 
 ;; Print usage information.
 
-(defn usage []
-  (println (str "\nUsage: revdiff object [regexp]\n"))
-  (println "  object : svn URI or name of versioned object in working-copy")
-  (println "  regexp : only show diffs where a changed line matches regexp\n"))
+(defn usage [summary code]
+  (println (str "\nUsage: revdiff [options] object [regexp]\n\n  Options:\n"))
+  (println (str summary "\n"))
+  (println "  object: svn URI or name of versioned object in working-copy")
+  (println "  regexp: only show diffs where a changed line matches regexp\n")
+  (System/exit code))
 
 ;; If object is a uri, the "-rn:m" revision-range format will not work if object
 ;; is no longer present in the head revision, in which case we have to use the
@@ -146,23 +142,18 @@
     (list (str path "@" r1) (str path "@" r2))
     (list (str "-r" r1 ":" r2) path)))
 
-;;(defn- assoc-s [m k v]
-;; (let [sets (:set m [])]
-;;   (assoc m :set (into sets [v]))))
-;;(defn- parse-s [x]
-;; (let [[nml+key val] (string/split x #"=" 2)
-;;       [nml key] (parse-g nml+key)]
-;;   [nml key val]))
+
+;; Entry point from command line.
 
 (defn -main [& args]
-;; (let [{:keys [options arguments summary]} (cli/parse-opts args cliopts)
-;;       gets (:get options)
-;;       sets (:set options)
-;;       in   (or (:in  options) *in* )
-;;       out  (or (:out options) *out*)]
-  (let [object (first args) filt (or (second args) ".*")]
+  (let [{:keys [options arguments summary]} (cli/parse-opts args cliopts)
+        object (first arguments)
+        filt (or (second arguments) ".*")
+        optsd (:diff-opts options)
+        optsl (:log-opts options)]
+    (if (:help options) (usage summary 0))
     (if (not object)
-      (usage)
+      (usage summary 1)
       (do
-        (diffrevpairs object filt (revpairs (revlist object) object))
+        (diffrevpairs object filt (revpairs (get-revlist optsl object) object))
         (shutdown-agents)))))
