@@ -39,7 +39,7 @@
         v (vpaths r1 r2 object object)
         o1 (first v)
         o2 (second v)
-        cmd-components ["svn" "diff" "--diff-cmd" "diff" "-x" "-u0" shhh o1 o2]]
+        cmd-components ["svn" "diff" "--diff-cmd" "diff" "-x" "-U 0" shhh o1 o2]]
     (if show (show-cmd cmd-components))
     (apply sh cmd-components)))
 
@@ -61,7 +61,8 @@
   (println "\nError retrieving repository information. Perhaps:\n")
   (println "- The supplied filename or URI is invalid, or")
   (println "- Your valid svn authentication credentials are not cached.")
-  (println))
+  (println)
+  (System/exit 1))
 
 ;; Return a newest-first sequence of revision numbers in which the object
 ;; changed.
