@@ -48,12 +48,13 @@
 
 (defn diff-revpairs [object filt revpairs show insens]
   (loop [x revpairs]
-    (let [r1 (first x)
-          r2 (second x)
-          mf (matching-files r1 r2 object filt show insens)]
-      (println (str "Checking: r" r1 " vs r" r2))
-      (doseq [filename mf] (svndiff r1 r2 filename object show))
-      (recur (drop 2 x)))))
+    (if (not-empty x)
+      (let [r1 (first x)
+            r2 (second x)
+            mf (matching-files r1 r2 object filt show insens)]
+        (println (str "Checking: r" r1 " vs r" r2))
+        (doseq [filename mf] (svndiff r1 r2 filename object show))
+        (recur (drop 2 x))))))
 
 ;; Try to explain why this has failed.
 
