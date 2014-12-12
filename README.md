@@ -22,6 +22,7 @@ Usage: revdiff [options] object [regexp]
 ````
 The _revdiff_ wrapper script looks for the Leiningen-generated _revdiff.jar_ in the same directory as the script itself. It may be convenient to edit this script for your own use.
 
+###Notes on options
 If the optional second argument is present, diffs are only shown only when some changed line matches the given regexp. The regexp must match a **complete** line, so e.g. to filter by _term_, supply the regexp _".\*term.\*"_.
 
 Use the _-d_ and _-l_ options with caution. Some svn options (like _--stop-on-copy_ for the _svn log_ command) are quite useful; others may interfere with options automatically passed to svn (like _--xml_). The _-s_ command can be used to show the actual svn commands being executed, and may be useful for debugging problems encountered when using _-d_ or _-l_.
