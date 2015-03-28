@@ -56,23 +56,16 @@
         (doseq [filename mf] (svndiff r1 r2 filename object show))
         (recur (drop 2 x))))))
 
-;; Try to explain why this has failed.
-
-(defn errmsg []
-  (println "\nError retrieving repository information. Perhaps:\n")
-  (println "- The supplied filename or URI is invalid, or")
-  (println "- Your valid svn authentication credentials are not cached.")
-  (println)
-  (System/exit 1))
-
 ;; Return a newest-first sequence of revision numbers in which the object
 ;; changed.
 
 (defn get-revlist [opts show object]
-  (let [x (java.io.ByteArrayInputStream. (.getBytes (log opts show object)))]
+  (let [result (log opts show object)
+        stream (java.io.ByteArrayInputStream. (.getBytes (:out result)))]
     (for [e (try
-              (xml-seq (parse x))
-              (catch Exception e (errmsg)))
+              (xml-seq (parse stream))
+              (catch Exception e
+                (println (:err result))))
           :when (seq (:attrs e))]
     (:revision (:attrs e)))))
 
@@ -91,7 +84,7 @@
     (if show (show-cmd cmd-components))
     (print "Fetching log... ")
     (flush)
-    (let [result (:out (apply sh cmd-components))]
+    (let [result (apply sh cmd-components)]
       (println)
       result)))
 
