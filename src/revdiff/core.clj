@@ -32,7 +32,7 @@
    ["-l" "--log-opts options" "Quoted list of options to pass to svn log"]
    ["-s" "--show-cmds" "Show svn commands as they are issued"]])
 
-;; A string containing the output of "diff" on the two svn revision of object.
+;; A string containing the output of "diff" on the two svn revisions of object.
 
 (defn diff [r1 r2 object show]
   (let [object (baseobject object)
