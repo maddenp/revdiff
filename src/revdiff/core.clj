@@ -39,7 +39,7 @@
         v (vpaths r1 r2 object object)
         o1 (first v)
         o2 (second v)
-        cmd-components ["svn" "diff" "--diff-cmd" "diff" "-x" "-U 0" shhh o1 o2]]
+        cmd-components ["svn" "diff" "--diff-cmd=diff" shhh o1 o2]]
     (if show (show-cmd cmd-components))
     (apply sh cmd-components)))
 
@@ -96,13 +96,15 @@
 ;; If no filter term is given, a changed file automatically matches.
 
 (defn matching-files [r1 r2 object filt show insens]
-  (let [raw (:out (diff r1 r2 object show))
-        blocks (rest (split raw #"^Index: |\nIndex: "))
-        filt (if insens (str "(?i)" filt) filt)]
+  (let [raw (diff r1 r2 object show)
+        out (:out raw)
+        blocks (rest (split out #"^Index: |\nIndex: "))
+        filt (if insens (str "(?i)" filt) filt)
+        re (re-pattern filt)]
     (remove nil?
             (into []
                   (for [block blocks]
-                    (let [matching-line-in? #(re-matches (re-pattern filt) %)
+                    (let [matching-line-in? #(re-matches re %)
                           diff-line? #(re-matches #"^[+-][^+-].*" %)
                           strip+- #(clojure.string/replace % #"^[+-]" "")
                           all-lines (split-lines block)
