@@ -1,5 +1,7 @@
 revdiff
 =======
+[![Build Status](https://travis-ci.org/maddenp/revdiff.svg)](https://travis-ci.org/maddenp/revdiff)
+
 Performs an _svn diff_ on each pair of revisions between which the object supplied as the first argument changed. The most recent changes are shown first. The object may be an svn URI or the name of a versioned filesystem object (i.e. a file or directory in a checked-out working copy).
 
 ###Build
